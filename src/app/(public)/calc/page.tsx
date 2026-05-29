@@ -128,6 +128,7 @@ export default function CalculatorsHub() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"All" | "B2C" | "B2B">("All");
   const [audienceFilter, setAudienceFilter] = useState<"All" | "Individual" | "Operations">("All");
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Set mounted flag and load initial parameters from URL
@@ -281,107 +282,129 @@ export default function CalculatorsHub() {
       {/* Main Workspace Frame */}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* 3. SLEEK LEFT SIDE VERTICAL NAVIGATION (lg:col-span-3) */}
+                    {/* 3. SLEEK LEFT SIDE VERTICAL NAVIGATION (lg:col-span-3) */}
           <aside className="lg:col-span-3 space-y-6">
-            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-900 p-5 rounded-2xl space-y-5 text-left font-sans">
+            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-900 p-5 rounded-2xl text-left font-sans transition-colors duration-300">
               
-              <div className="border-b border-slate-900 pb-3 flex items-center justify-between">
+              {/* Responsive Collapsible Trigger Header */}
+              <button
+                onClick={() => {
+                  if (window.innerWidth < 1024) {
+                    setIsFiltersExpanded(!isFiltersExpanded);
+                  }
+                }}
+                className="w-full pb-3 flex items-center justify-between border-b border-slate-900 lg:border-transparent text-left lg:pointer-events-none lg:cursor-default cursor-pointer"
+              >
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Filter className="w-3.5 h-3.5 text-emerald-500" />
-                  Filter Deck
+                  Filter Deck & Workspace
                 </span>
-                <span className="text-[9.5px] text-slate-500 uppercase tracking-wider font-extrabold">Active</span>
-              </div>
-
-              {/* Category Filter list */}
-              <div className="space-y-2">
-                <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Category</span>
-                <div className="flex flex-col gap-1.5">
-                  {(["All", "B2C", "B2B"] as const).map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setCategoryFilter(cat)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
-                        categoryFilter === cat 
-                          ? "bg-slate-900/80 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/10" 
-                          : "border-transparent text-slate-500 hover:text-slate-355 hover:bg-slate-950/40"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
-                          categoryFilter === cat ? "text-emerald-450" : "text-slate-650"
-                        }`} />
-                        {cat === "All" ? "All Categories" : (cat === "B2C" ? "B2C Viral" : "B2B Compliance")}
-                      </span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-500 group-hover:text-slate-400">
-                        {cat === "All" 
-                          ? CALCULATORS.length 
-                          : CALCULATORS.filter(c => cat === "B2C" ? c.category === "B2C Viral" : c.category === "B2B Compliance").length}
-                      </span>
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-[9.5px] text-slate-500 uppercase tracking-wider font-extrabold lg:inline hidden animate-pulse">Active</span>
+                  <ChevronRight 
+                    className={`w-4 h-4 text-slate-500 transition-transform lg:hidden ${
+                      isFiltersExpanded ? "rotate-90" : ""
+                    }`} 
+                  />
                 </div>
-              </div>
+              </button>
 
-              {/* Target Audience Filter list */}
-              <div className="space-y-2 pt-2 border-t border-slate-900/60">
-                <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Target Audience</span>
-                <div className="flex flex-col gap-1.5">
-                  {(["All", "Individual", "Operations"] as const).map((aud) => (
-                    <button
-                      key={aud}
-                      onClick={() => setAudienceFilter(aud)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
-                        audienceFilter === aud 
-                          ? "bg-slate-900/80 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/10" 
-                          : "border-transparent text-slate-500 hover:text-slate-355 hover:bg-slate-950/40"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
-                          audienceFilter === aud ? "text-emerald-455" : "text-slate-655"
-                        }`} />
-                        {aud === "All" ? "All Audiences" : aud}
-                      </span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-500 group-hover:text-slate-400">
-                        {aud === "All" 
-                          ? CALCULATORS.length 
-                          : CALCULATORS.filter(c => c.audience === aud).length}
-                      </span>
-                    </button>
-                  ))}
+              {/* Collapsible Content Wrapper (responsive visible/hidden depending on state) */}
+              <div className={`space-y-5 pt-5 lg:block ${isFiltersExpanded ? "block animate-fade-in" : "hidden"}`}>
+                
+                {/* Category Filter list */}
+                <div className="space-y-2">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Category</span>
+                  <div className="flex flex-col gap-1.5">
+                    {(["All", "B2C", "B2B"] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setCategoryFilter(cat)}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
+                          categoryFilter === cat 
+                            ? "bg-slate-900/80 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/10" 
+                            : "border-transparent text-slate-500 hover:text-slate-355 hover:bg-slate-950/40"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
+                            categoryFilter === cat ? "text-emerald-450" : "text-slate-655"
+                          }`} />
+                          {cat === "All" ? "All Categories" : (cat === "B2C" ? "B2C Viral" : "B2B Compliance")}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-500 group-hover:text-slate-400">
+                          {cat === "All" 
+                            ? CALCULATORS.length 
+                            : CALCULATORS.filter(c => cat === "B2C" ? c.category === "B2C Viral" : c.category === "B2B Compliance").length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Interactive Staging Sidebar Selectors */}
-              <div className="space-y-2 pt-4 border-t border-slate-900/60">
-                <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Stage Workspace Module</span>
-                <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1">
-                  {filteredCalculators.map((calc) => (
-                    <button
-                      key={calc.id}
-                      onClick={() => {
-                        setActiveTab(calc.id);
-                        setViewMode("workbench");
-                      }}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left border transition text-[11.5px] group truncate font-semibold cursor-pointer ${
-                        activeTab === calc.id && viewMode === "workbench"
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-455 font-bold shadow-sm shadow-emerald-950/10"
-                          : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20"
-                      }`}
-                    >
-                      {calc.icon}
-                      <span className="truncate">{calc.title}</span>
-                    </button>
-                  ))}
+                {/* Target Audience Filter list */}
+                <div className="space-y-2 pt-2 border-t border-slate-900/60">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Target Audience</span>
+                  <div className="flex flex-col gap-1.5">
+                    {(["All", "Individual", "Operations"] as const).map((aud) => (
+                      <button
+                        key={aud}
+                        onClick={() => setAudienceFilter(aud)}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
+                          audienceFilter === aud 
+                            ? "bg-slate-900/80 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/10" 
+                            : "border-transparent text-slate-500 hover:text-slate-355 hover:bg-slate-950/40"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
+                            audienceFilter === aud ? "text-emerald-455" : "text-slate-655"
+                          }`} />
+                          {aud === "All" ? "All Audiences" : aud}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-500 group-hover:text-slate-400">
+                          {aud === "All" 
+                            ? CALCULATORS.length 
+                            : CALCULATORS.filter(c => c.audience === aud).length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Interactive Staging Sidebar Selectors */}
+                <div className="space-y-2 pt-4 border-t border-slate-900/60">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Stage Workspace Module</span>
+                  <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1">
+                    {filteredCalculators.map((calc) => (
+                      <button
+                        key={calc.id}
+                        onClick={() => {
+                          setActiveTab(calc.id);
+                          setViewMode("workbench");
+                          if (window.innerWidth < 1024) {
+                            setIsFiltersExpanded(false);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left border transition text-[11.5px] group truncate font-semibold cursor-pointer ${
+                          activeTab === calc.id && viewMode === "workbench"
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-455 font-bold shadow-sm shadow-emerald-950/10"
+                            : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20"
+                        }`}
+                      >
+                        {calc.icon}
+                        <span className="truncate">{calc.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
               </div>
 
             </div>
 
-            {/* Social Community Redirection Box */}
-            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-900 p-5 rounded-2xl space-y-3 font-sans text-left select-none">
+            {/* Social Community Redirection Box - Hidden on Mobile/Tablet to reduce clutter */}
+            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-900 p-5 rounded-2xl space-y-3 font-sans text-left select-none hidden lg:block">
               <span className="text-[9.5px] font-bold text-white uppercase tracking-wider block">MTC Social Community</span>
               <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
                 Debating subscription metrics, running contests, or having runaway bill scares? Post them on our active community boards!

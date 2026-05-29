@@ -43,6 +43,16 @@ next-env.d.ts
 # clerk configuration (can include secrets)
 /.clerk/
 
+# PII, Logs, Editor Configs, and Scratch Files
+*.log
+/scratch/
+/tmp/
+/temp/
+/.vscode/
+/.idea/
+/secrets/
+.system_generated/
+
 # sandbox staging area (local-only, prevents secrets leak in public repo)
 /src/app/\(public\)/sandbox/
 /src/app/\(public\)/sandbox/**/*

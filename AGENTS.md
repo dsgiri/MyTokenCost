@@ -43,3 +43,14 @@ Welcome, AI Coding Assistant! You are collaborating with human developers to bui
 *   **Scope Isolation (Work Boundaries):** Strictly limit edits to the specific files directly relevant to the user request. Do not perform "accidental cleanups," reformat unrelated files, or touch adjacent files outside the task scope, as this introduces regression risks and unnecessary merge conflicts.
 *   **Secrets & Env Safety:** Never add, modify, or leak sensitive API keys or local configurations inside `.env`, `.env.local`, or related workspace files.
 *   **Verification Gate:** Every file modification must pass compilation checks. Always run `npx tsc --noEmit` as a post-write verification gate to ensure exactly 0 compilation errors and 0 type warnings are introduced.
+
+---
+
+## 6. Unified Test, Build, Push, Deploy & PII Protocol
+*   **Execution Sequence**: Always follow the exact sequential deployment plan documented in [deployment_workflow.md](file:///c:/Users/z00545fp/Documents/MYTOKENCOST/docs/deployment_workflow.md) before pushing code:
+    1.  **Test**: Run `npm run lint` and `npx tsc --noEmit` (ensure exactly 0 warnings/errors).
+    2.  **Build**: Run `npm run build` locally to verify full static/dynamic page generation.
+    3.  **Push**: Double-check `git status` to ensure no sensitive files are tracked, then commit and push.
+    4.  **Deploy**: Confirm Vercel finishes building successfully with the Next.js framework preset.
+*   **PII & Secrets Prevention**: Actively maintain `.gitignore` to prevent any leak of Personally Identifiable Information (PII) or keys. Never commit logs (`*.log`), local developer files (`/.vscode/`, `/.idea/`), environment files (`.env*`), temp caches (`.system_generated/`), or real client names/identities.
+*   **Keep Docs Updated**: When changing layouts, analytics, or middleware, immediately update relevant docs (`docs/security.md`, `docs/architecture.md`, etc.) to match implementation reality.

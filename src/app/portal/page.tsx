@@ -46,7 +46,7 @@ export default async function PortalDashboard() {
               </span>
             )}
           </div>
-          <div className="h-[600px] relative">
+          <div className="min-h-[600px] h-auto relative w-full pb-6">
             <ComplianceCalculator />
           </div>
         </div>
