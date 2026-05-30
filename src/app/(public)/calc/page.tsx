@@ -27,6 +27,7 @@ import CarbonAnalogy from "@/components/calculators/CarbonAnalogy";
 import ErcotLoad from "@/components/calculators/ErcotLoad";
 import WueCooling from "@/components/calculators/WueCooling";
 import HhscGenerator from "@/components/calculators/HhscGenerator";
+import SpendVsNode from "@/components/calculators/SpendVsNode";
 
 // Interfaces for our registry list of calculators
 interface CalcItem {
@@ -118,6 +119,17 @@ const CALCULATORS: CalcItem[] = [
     badge: "Care Safety",
     path: "/calc/hhsc-generator",
     icon: <Cpu className="w-4 h-4 text-emerald-455" />
+  },
+  {
+    id: "spend-vs-node",
+    title: "Cloud LLM API Spend vs. Local Node ROI",
+    category: "B2B Compliance",
+    audience: "Operations",
+    viralityScore: "9.7/10 (FinOps Standard)",
+    tagline: "Project capital payback curves comparing continuous cloud API subscriptions against localized bare-metal hardware nodes.",
+    badge: "FinOps ROI",
+    path: "/calc/spend-vs-node",
+    icon: <Cpu className="w-4 h-4 text-cyan-400" />
   }
 ];
 
@@ -208,280 +220,294 @@ export default function CalculatorsHub() {
       </div>
     );
   }
-
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-200 font-sans antialiased">
+    <div className="w-full min-h-screen bg-black text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-200 font-sans antialiased">
       
-      {/* Dynamic Header */}
-      <div className="relative overflow-hidden pt-12 pb-8 border-b border-slate-900 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.06),rgba(255,255,255,0))]">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-25" />
-        
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2.5 text-left">
-              <Link 
-                href="/" 
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-emerald-450 transition"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Back to Home
-              </Link>
-              <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-white leading-tight flex items-center gap-2.5">
-                <Calculator className="w-8 h-8 text-emerald-500" />
-                MTC <span className="bg-gradient-to-r from-emerald-450 to-cyan-455 bg-clip-text text-transparent">Interactive Calculators Hub</span>
-              </h1>
-              <p className="text-sm font-medium leading-relaxed text-slate-300 max-w-2xl">
-                Explore our 3x3 dashboard directory or click any calculator below to open its live interactive workspace instantly.
-              </p>
+      {/* Dynamic Header: Visible only in catalog browsing grid mode */}
+      {viewMode === "grid" ? (
+        <div className="relative overflow-hidden pt-12 pb-8 border-b border-slate-800 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.08),rgba(255,255,255,0))]">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-20" />
+          
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2.5 text-left">
+                <Link 
+                  href="/" 
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-emerald-400 transition"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to Home
+                </Link>
+                <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-white leading-tight flex items-center gap-2.5">
+                  <Calculator className="w-8 h-8 text-emerald-400" />
+                  MTC <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Interactive Calculators Hub</span>
+                </h1>
+                <p className="text-sm font-medium leading-relaxed text-slate-200 max-w-2xl">
+                  Explore our 3x3 dashboard directory or click any calculator below to open its live interactive workspace instantly.
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setViewMode("grid")}
+                  className={`px-4.5 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition flex items-center gap-2 cursor-pointer bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-md`}
+                >
+                  <span>Grid Catalog View</span>
+                </button>
+                <div className="flex items-center gap-2 text-[11px] font-extrabold text-slate-100 uppercase bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-xl">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Active Directory
+                </div>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-3">
+
+            {/* 2. DYNAMIC CENTERED TOP SEARCH BAR */}
+            <div className="max-w-2xl mx-auto pt-8 relative">
+              <div className="relative group">
+                <Search className="absolute left-4.5 top-4 w-4 h-4 text-slate-400 group-focus-within:text-emerald-400 transition-colors" />
+                <input 
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search calculators (Press '/' to focus)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-400 rounded-2xl py-3.5 pl-12 pr-18 text-[13px] text-white placeholder-slate-400 focus:outline-none transition-all duration-300 font-bold shadow-lg shadow-black/40"
+                />
+                <div className="absolute right-4.5 top-3.5 flex items-center gap-2 select-none pointer-events-none">
+                  <span className="px-2 py-0.5 rounded-md bg-black border border-slate-750 text-[9px] font-black text-slate-300 uppercase tracking-wider">
+                    / focus
+                  </span>
+                  <span className="text-[11px] text-slate-200 font-extrabold">
+                    {filteredCalculators.length} Match
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        /* Workspace Top focused Breadcrumbs */
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="flex items-center justify-between text-xs font-mono text-slate-200 border-b border-slate-800 pb-3 font-bold select-none">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => setViewMode("grid")}
-                className={`px-4.5 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 cursor-pointer ${
-                  viewMode === "grid" 
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/15" 
-                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                }`}
+                className="text-slate-400 hover:text-emerald-400 transition flex items-center gap-1 font-bold uppercase tracking-wider cursor-pointer"
               >
-                <span>Grid Catalog View</span>
+                <ArrowLeft className="w-3.5 h-3.5" /> Tools Catalog
               </button>
-              <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase bg-slate-900/60 border border-slate-900 px-4 py-2.5 rounded-xl">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Active Directory
-              </div>
+              <span className="text-slate-700">/</span>
+              <span className="text-white font-extrabold uppercase tracking-wider">
+                {CALCULATORS.find(c => c.id === activeTab)?.title.split(" ").slice(-2).join(" ")}
+              </span>
             </div>
           </div>
-
-          {/* 2. DYNAMIC CENTERED TOP SEARCH BAR */}
-          <div className="max-w-2xl mx-auto pt-8 relative">
-            <div className="relative group">
-              <Search className="absolute left-4.5 top-4 w-4 h-4 text-slate-500 group-focus-within:text-emerald-450 transition-colors" />
-              <input 
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search calculators (Press '/' to focus)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-900/60 backdrop-blur-md border border-slate-850 focus:border-emerald-500/50 rounded-2xl py-3.5 pl-12 pr-18 text-[13px] text-white placeholder-slate-650 focus:outline-none transition-all duration-300 font-semibold shadow-lg shadow-black/25"
-              />
-              <div className="absolute right-4.5 top-3.5 flex items-center gap-2 select-none pointer-events-none">
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                  / focus
-                </span>
-                <span className="text-[11px] text-slate-400 font-bold">
-                  {filteredCalculators.length} Match
-                </span>
-              </div>
-            </div>
-          </div>
-
         </div>
-      </div>
+      )}
 
       {/* Main Workspace Frame */}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* 3. SLEEK LEFT SIDE VERTICAL NAVIGATION (lg:col-span-3) */}
-          <aside className="lg:col-span-3 space-y-6">
-            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-900 p-5 rounded-2xl text-left font-sans transition-colors duration-300">
-              
-              {/* Responsive Collapsible Trigger Header */}
-              <button
-                onClick={() => {
-                  if (window.innerWidth < 1024) {
-                    setIsFiltersExpanded(!isFiltersExpanded);
-                  }
-                }}
-                className="w-full pb-3 flex items-center justify-between border-b border-slate-900 lg:border-transparent text-left lg:pointer-events-none lg:cursor-default cursor-pointer"
-              >
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-emerald-500" />
-                  Filter Deck & Workspace
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9.5px] text-slate-500 uppercase tracking-wider font-extrabold lg:inline hidden animate-pulse">Active</span>
-                  <ChevronRight 
-                    className={`w-4 h-4 text-slate-500 transition-transform lg:hidden ${
-                      isFiltersExpanded ? "rotate-90" : ""
-                    }`} 
-                  />
-                </div>
-              </button>
-
-              {/* Collapsible Content Wrapper (responsive visible/hidden depending on state) */}
-              <div className={`space-y-5 pt-5 lg:block ${isFiltersExpanded ? "block animate-fade-in" : "hidden"}`}>
+          
+          {/* 3. SLEEK LEFT SIDE VERTICAL NAVIGATION (lg:col-span-3) - Rendered only in Catalog Mode */}
+          {viewMode === "grid" && (
+            <aside className="lg:col-span-3 space-y-6">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl text-left font-sans shadow-xl">
                 
-                {/* Category Filter list */}
-                <div className="space-y-2">
-                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Category</span>
-                  <div className="flex flex-col gap-1.5">
-                    {(["All", "B2C", "B2B"] as const).map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setCategoryFilter(cat)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
-                          categoryFilter === cat 
-                            ? "bg-slate-900/80 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/10" 
-                            : "border-transparent text-slate-500 hover:text-slate-355 hover:bg-slate-950/40"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
-                            categoryFilter === cat ? "text-emerald-450" : "text-slate-655"
-                          }`} />
-                          {cat === "All" ? "All Categories" : (cat === "B2C" ? "B2C Viral" : "B2B Compliance")}
-                        </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-500 group-hover:text-slate-400">
-                          {cat === "All" 
-                            ? CALCULATORS.length 
-                            : CALCULATORS.filter(c => cat === "B2C" ? c.category === "B2C Viral" : c.category === "B2B Compliance").length}
-                        </span>
-                      </button>
-                    ))}
+                {/* Responsive Collapsible Trigger Header */}
+                <button
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      setIsFiltersExpanded(!isFiltersExpanded);
+                    }
+                  }}
+                  className="w-full pb-3 flex items-center justify-between border-b border-slate-800 lg:border-transparent text-left lg:pointer-events-none lg:cursor-default cursor-pointer"
+                >
+                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-emerald-450" />
+                    Filter Deck & Workspace
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9.5px] text-slate-300 uppercase tracking-wider font-black lg:inline hidden animate-pulse">Active</span>
+                    <ChevronRight 
+                      className={`w-4 h-4 text-slate-300 transition-transform lg:hidden ${
+                        isFiltersExpanded ? "rotate-90" : ""
+                      }`} 
+                    />
                   </div>
-                </div>
+                </button>
 
-                {/* Target Audience Filter list */}
-                <div className="space-y-2 pt-2 border-t border-slate-900/60">
-                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Target Audience</span>
-                  <div className="flex flex-col gap-1.5">
-                    {(["All", "Individual", "Operations"] as const).map((aud) => (
-                      <button
-                        key={aud}
-                        onClick={() => setAudienceFilter(aud)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
-                          audienceFilter === aud 
-                            ? "bg-slate-900/80 border-emerald-500/30 text-emerald-450 shadow-md shadow-emerald-950/10" 
-                            : "border-transparent text-slate-500 hover:text-slate-355 hover:bg-slate-950/40"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
-                            audienceFilter === aud ? "text-emerald-455" : "text-slate-655"
-                          }`} />
-                          {aud === "All" ? "All Audiences" : aud}
-                        </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-500 group-hover:text-slate-400">
-                          {aud === "All" 
-                            ? CALCULATORS.length 
-                            : CALCULATORS.filter(c => c.audience === aud).length}
-                        </span>
-                      </button>
-                    ))}
+                {/* Collapsible Content Wrapper */}
+                <div className={`space-y-5 pt-5 lg:block ${isFiltersExpanded ? "block animate-fade-in" : "hidden"}`}>
+                  
+                  {/* Category Filter list */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-black text-slate-200 uppercase tracking-wider block">Category</span>
+                    <div className="flex flex-col gap-1.5">
+                      {(["All", "B2C", "B2B"] as const).map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setCategoryFilter(cat)}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
+                            categoryFilter === cat 
+                              ? "bg-black border-emerald-500/50 text-emerald-400 shadow-md shadow-emerald-550/10" 
+                              : "border-transparent text-slate-300 hover:text-white hover:bg-slate-950/60"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
+                              categoryFilter === cat ? "text-emerald-400" : "text-slate-500"
+                            }`} />
+                            {cat === "All" ? "All Categories" : (cat === "B2C" ? "B2C Viral" : "B2B Compliance")}
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black text-slate-300 group-hover:text-slate-100">
+                            {cat === "All" 
+                              ? CALCULATORS.length 
+                              : CALCULATORS.filter(c => cat === "B2C" ? c.category === "B2C Viral" : c.category === "B2B Compliance").length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Interactive Staging Sidebar Selectors */}
-                <div className="space-y-2 pt-4 border-t border-slate-900/60">
-                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider block">Stage Workspace Module</span>
-                  <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1">
-                    {filteredCalculators.map((calc) => (
-                      <button
-                        key={calc.id}
-                        onClick={() => {
-                          setActiveTab(calc.id);
-                          setViewMode("workbench");
-                          if (window.innerWidth < 1024) {
-                            setIsFiltersExpanded(false);
-                          }
-                        }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left border transition text-[11.5px] group truncate font-semibold cursor-pointer ${
-                          activeTab === calc.id && viewMode === "workbench"
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-455 font-bold shadow-sm shadow-emerald-950/10"
-                            : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20"
-                        }`}
-                      >
-                        {calc.icon}
-                        <span className="truncate">{calc.title}</span>
-                      </button>
-                    ))}
+                  {/* Target Audience Filter list */}
+                  <div className="space-y-2 pt-2 border-t border-slate-800">
+                    <span className="text-[11px] font-black text-slate-200 uppercase tracking-wider block">Target Audience</span>
+                    <div className="flex flex-col gap-1.5">
+                      {(["All", "Individual", "Operations"] as const).map((aud) => (
+                        <button
+                          key={aud}
+                          onClick={() => setAudienceFilter(aud)}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all uppercase text-left group cursor-pointer ${
+                            audienceFilter === aud 
+                              ? "bg-black border-emerald-500/50 text-emerald-400 shadow-md shadow-emerald-550/10" 
+                              : "border-transparent text-slate-300 hover:text-white hover:bg-slate-950/60"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform ${
+                              audienceFilter === aud ? "text-emerald-400" : "text-slate-500"
+                            }`} />
+                            {aud === "All" ? "All Audiences" : aud}
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black text-slate-300 group-hover:text-slate-100">
+                            {aud === "All" 
+                              ? CALCULATORS.length 
+                              : CALCULATORS.filter(c => c.audience === aud).length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Interactive Staging Sidebar Selectors */}
+                  <div className="space-y-2 pt-4 border-t border-slate-800">
+                    <span className="text-[11px] font-black text-slate-200 uppercase tracking-wider block">Stage Workspace Module</span>
+                    <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1">
+                      {filteredCalculators.map((calc) => (
+                        <button
+                          key={calc.id}
+                          onClick={() => {
+                            setActiveTab(calc.id);
+                            setViewMode("workbench");
+                            if (window.innerWidth < 1024) {
+                              setIsFiltersExpanded(false);
+                            }
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left border border-transparent transition text-[11.5px] group truncate font-bold text-slate-300 hover:text-white hover:bg-slate-950/60 cursor-pointer`}
+                        >
+                          {calc.icon}
+                          <span className="truncate">{calc.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
 
               </div>
 
-            </div>
+              {/* Social Community Redirection Box */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 font-sans text-left select-none hidden lg:block shadow-xl">
+                <span className="text-[10px] font-black text-white uppercase tracking-wider block">MTC Social Community</span>
+                <p className="text-[11px] text-slate-200 leading-relaxed font-semibold">
+                  Debating subscription metrics, running contests, or having runaway bill scares? Post them on our active community boards!
+                </p>
+                <a 
+                  href="https://reddit.com/r/MyTokenCost" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 underline pt-1 font-extrabold"
+                >
+                  Join r/MyTokenCost Subreddit
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </aside>
+          )}
 
-            {/* Social Community Redirection Box - Hidden on Mobile/Tablet to reduce clutter */}
-            <div className="bg-slate-900/40 backdrop-blur-md border border-slate-900 p-5 rounded-2xl space-y-3 font-sans text-left select-none hidden lg:block">
-              <span className="text-[9.5px] font-bold text-white uppercase tracking-wider block">MTC Social Community</span>
-              <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
-                Debating subscription metrics, running contests, or having runaway bill scares? Post them on our active community boards!
-              </p>
-              <a 
-                href="https://reddit.com/r/MyTokenCost" 
-                target="_blank" 
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-emerald-450 hover:text-emerald-400 underline pt-1 font-bold"
-              >
-                Join r/MyTokenCost Subreddit
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          </aside>
-
-          {/* 4. DYNAMIC RIGHT-SIDE WORKSPACE FRAME (lg:col-span-9) */}
-          <main className="lg:col-span-9">
+          {/* 4. DYNAMIC RIGHT-SIDE WORKSPACE FRAME (lg:col-span-9 or lg:col-span-12) */}
+          <main className={viewMode === "grid" ? "lg:col-span-9 w-full" : "lg:col-span-12 w-full"}>
             
             {viewMode === "grid" ? (
               
               /* 3x3 DASHBOARD CATALOG GRID FORMAT */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredCalculators.length === 0 ? (
-                  <div className="col-span-full text-center py-20 border border-dashed border-slate-900 rounded-3xl text-slate-400 font-semibold text-xs sm:text-sm">
+                  <div className="col-span-full text-center py-20 border border-dashed border-slate-800 rounded-3xl text-slate-300 font-bold text-xs sm:text-sm bg-slate-900">
                     No calculators match your active filter parameters.
                   </div>
                 ) : (
                   filteredCalculators.map((calc) => (
                     <div 
                       key={calc.id}
-                      className="bg-slate-900/30 backdrop-blur-sm border border-slate-900 hover:border-slate-800 rounded-2xl p-5.5 flex flex-col justify-between transition-all duration-300 relative group overflow-hidden hover:scale-[1.02] hover:-translate-y-1 text-left"
+                      className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5.5 flex flex-col justify-between transition-all duration-300 relative group overflow-hidden hover:scale-[1.02] hover:-translate-y-1 text-left shadow-lg"
                     >
                       <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-950 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       
                       <div className="relative space-y-4">
                         <div className="flex justify-between items-start gap-4">
-                          <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-850">
+                          <div className="bg-black p-2.5 rounded-xl border border-slate-800">
                             {calc.icon}
                           </div>
-                          <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-bold border uppercase tracking-wider ${
+                          <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider ${
                             calc.category === "B2C Viral" 
-                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-455" 
-                              : "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                              ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" 
+                              : "bg-cyan-500/20 border-cyan-500/30 text-cyan-400"
                           }`}>
                             {calc.badge}
                           </span>
                         </div>
 
                         <div className="space-y-1.5">
-                          <h2 className="text-sm sm:text-base font-black font-display text-white group-hover:text-emerald-450 transition-colors tracking-tight leading-snug">
+                          <h2 className="text-sm sm:text-base font-black font-display text-white group-hover:text-emerald-400 transition-colors tracking-tight leading-snug">
                             {calc.title}
                           </h2>
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">
-                            Score: <span className="text-slate-400">{calc.viralityScore}</span>
+                          <div className="text-[10px] text-slate-300 uppercase tracking-wider font-extrabold">
+                            Score: <span className="text-slate-100">{calc.viralityScore}</span>
                           </div>
                         </div>
 
-                        <p className="text-xs sm:text-[13px] text-slate-300 font-semibold leading-relaxed line-clamp-4">
+                        <p className="text-xs sm:text-[13px] text-slate-100 font-medium leading-relaxed line-clamp-4">
                           {calc.tagline}
                         </p>
                       </div>
 
-                      <div className="relative pt-4 border-t border-slate-900 mt-5 flex gap-2">
+                      <div className="relative pt-4 border-t border-slate-800 mt-5 flex gap-2">
                         <button 
                           onClick={() => {
                             setActiveTab(calc.id);
                             setViewMode("workbench");
                           }}
-                          className="flex-grow bg-slate-900 hover:bg-slate-850 border border-slate-800 text-white font-bold py-2.5 rounded-xl text-[10.5px] uppercase tracking-wider transition flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] group-hover:border-slate-700 cursor-pointer"
+                          className="flex-grow bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-black py-2.5 rounded-xl text-[10.5px] uppercase tracking-wider transition flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] group-hover:border-slate-600 cursor-pointer"
                         >
                           Launch Workspace
-                          <ArrowRight className="w-3.5 h-3.5 text-emerald-450 group-hover:translate-x-0.5 transition-transform" />
+                          <ArrowRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
                         </button>
                         <Link 
                           href={calc.path}
-                          className="px-3 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 text-slate-400 hover:text-white rounded-xl transition flex items-center justify-center cursor-pointer"
+                          className="px-3 bg-black hover:bg-slate-905 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl transition flex items-center justify-center cursor-pointer"
                           title="Open Shareable Dedicated Page"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -496,36 +522,28 @@ export default function CalculatorsHub() {
             ) : (
 
               /* INTERACTIVE LIVE STAGING WORKBENCH PANEL */
-              <div className="bg-slate-900/30 backdrop-blur-sm border border-slate-900 rounded-2xl overflow-hidden min-h-[600px] flex flex-col justify-between text-left">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden min-h-[600px] flex flex-col justify-between text-left shadow-2xl">
                 
                 {/* Staging Frame Header */}
-                <div className="bg-slate-950 border-b border-slate-900 px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <button 
-                      onClick={() => setViewMode("grid")}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-405 transition cursor-pointer"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      Back to Catalog
-                    </button>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 uppercase tracking-widest block max-w-fit mt-1">
-                      Active workspace
-                    </span>
-                    <h2 className="text-lg sm:text-xl font-black text-white font-display mt-1.5 tracking-tight leading-snug">
+                <div className="bg-black border-b border-slate-800 px-6 py-6 text-left">
+                  <div className="space-y-2 max-w-3xl">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Workspace Active
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-white font-display tracking-tight leading-tight">
                       {CALCULATORS.find(c => c.id === activeTab)?.title}
                     </h2>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                      <span className="text-[11px] font-bold text-slate-400 uppercase">Live workspace active</span>
-                    </div>
+                    <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
+                      {CALCULATORS.find(c => c.id === activeTab)?.tagline}
+                    </p>
                   </div>
                 </div>
 
                 {/* LIVE CALCULATOR CONTAINER */}
-                <div className="p-6 sm:p-8 flex-grow">
+                <div className="p-6 sm:p-8 flex-grow bg-black">
                   {activeTab === "chatgpt-auditor" && <ChatgptAuditor />}
                   {activeTab === "sub-vs-api" && <SubVsApi />}
                   {activeTab === "apocalypse-bill" && <ApocalypseBill />}
@@ -533,6 +551,7 @@ export default function CalculatorsHub() {
                   {activeTab === "ercot-load" && <ErcotLoad />}
                   {activeTab === "wue-cooling" && <WueCooling />}
                   {activeTab === "hhsc-generator" && <HhscGenerator />}
+                  {activeTab === "spend-vs-node" && <SpendVsNode />}
                 </div>
 
               </div>

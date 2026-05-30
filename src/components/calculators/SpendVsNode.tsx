@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Sliders, 
+  Server, 
   Activity, 
   Terminal, 
   CheckCircle2, 
@@ -19,7 +20,14 @@ import {
   Gavel
 } from "lucide-react";
 import { submitRating, fetchRatings } from "@/lib/ratings";
-import { LLM_RATE_CARD, ProviderKey } from "@/lib/shared/rates";
+
+// Hardware constants matching specifications
+const HARDWARE_MATRICES = {
+  "MTK Lite Node": { cost: 1499, tdp: 0.24 },
+  "MTK Pro Node": { cost: 3999, tdp: 0.48 },
+  "MTK Cluster-4U": { cost: 8499, tdp: 1.20 }
+};
+const RUNTIME_EFFICIENCY = 50000; // tokens handled locally per kWh
 
 interface LogLine {
   timestamp: string;
@@ -27,20 +35,20 @@ interface LogLine {
   message: string;
 }
 
-export default function SubVsApi() {
+export default function SpendVsNode() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"calc" | "about" | "rules" | "architecture">("calc");
   
   // Slider Inputs
-  const [promptsPerDay, setPromptsPerDay] = useState(15);
-  const [wordsPerPrompt, setWordsPerPrompt] = useState(250);
-  const [selectedProvider, setSelectedProvider] = useState<ProviderKey>("anthropic");
+  const [spend, setSpend] = useState(1250);
+  const [tokens, setTokens] = useState(2500000);
+  const [rate, setRate] = useState(0.14);
 
   // Staging console logs
   const [logs, setLogs] = useState<LogLine[]>([]);
   
   // Interactive SVG architecture states
-  const [selectedArchNode, setSelectedArchNode] = useState<"ingest" | "proxy" | "rate" | "compare">("rate");
+  const [selectedArchNode, setSelectedArchNode] = useState<"client" | "proxy" | "hardware" | "local">("proxy");
 
   // Lead capture success state
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -56,21 +64,10 @@ export default function SubVsApi() {
   // Ref for logging scroll
   const logContainerRef = useRef<HTMLDivElement>(null);
 
-  // Mount check & URL state loading (industry best practice)
+  // Mount check & load ratings from Supabase
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const prompts = params.get("prompts");
-      const words = params.get("words");
-      const provider = params.get("provider");
-      if (prompts) setPromptsPerDay(Number(prompts));
-      if (words) setWordsPerPrompt(Number(words));
-      if (provider && Object.keys(LLM_RATE_CARD).includes(provider)) {
-        setSelectedProvider(provider as ProviderKey);
-      }
-    }
-    fetchRatings("calculator", "sub-vs-api").then((summary) => {
+    fetchRatings("calculator", "spend-vs-node").then((summary) => {
       setUpvotes(summary.upvotes);
       setDownvotes(summary.downvotes);
       if (summary.userVote === "up") setLiked(true);
@@ -78,49 +75,26 @@ export default function SubVsApi() {
     }).catch(() => {});
   }, []);
 
-  // Sync state changes with URL query parameters for social sharing
-  useEffect(() => {
-    if (mounted && typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("prompts", String(promptsPerDay));
-      url.searchParams.set("words", String(wordsPerPrompt));
-      url.searchParams.set("provider", selectedProvider);
-      window.history.replaceState(null, "", url.toString());
-    }
-  }, [promptsPerDay, wordsPerPrompt, selectedProvider, mounted]);
-
   // Recalculate metrics on input change and trigger stdout logging
   useEffect(() => {
     if (!mounted) return;
 
-    const rateCard = LLM_RATE_CARD[selectedProvider];
-    const totalWords = wordsPerPrompt;
-    const inputWords = totalWords * 0.7;
-    const outputWords = totalWords * 0.3;
+    // Node classification logic
+    let matchedNode = "MTK Lite Node";
+    if (tokens > 5000000 || spend > 3000) matchedNode = "MTK Cluster-4U";
+    else if (tokens > 2000000 || spend > 1000) matchedNode = "MTK Pro Node";
 
-    const queryInputTokens = inputWords * 1.33;
-    const queryOutputTokens = outputWords * 1.33;
-
-    const dailyInputTokens = queryInputTokens * promptsPerDay;
-    const dailyOutputTokens = queryOutputTokens * promptsPerDay;
-
-    const monthlyInputTokens = dailyInputTokens * 30.5;
-    const monthlyOutputTokens = dailyOutputTokens * 30.5;
-
-    const monthlyInputCost = (monthlyInputTokens / 1000000) * rateCard.inputCostPerMillion;
-    const monthlyOutputCost = (monthlyOutputTokens / 1000000) * rateCard.outputCostPerMillion;
-    const totalMonthlyCost = monthlyInputCost + monthlyOutputCost;
-
-    const subCost = 20.00;
-    const netSavings = subCost - totalMonthlyCost;
+    const nodeCost = HARDWARE_MATRICES[matchedNode as keyof typeof HARDWARE_MATRICES].cost;
+    const localOpex = (tokens / RUNTIME_EFFICIENCY) * rate * 24 * 30;
+    const payback = (spend - localOpex) > 0 ? (nodeCost / (spend - localOpex)) : 99;
 
     const stamp = new Date().toLocaleTimeString();
     const newLogs: LogLine[] = [
-      { timestamp: stamp, type: "init", message: "Standardized sub vs API metrics synchronized." },
-      { timestamp: stamp, type: "config", message: `PROVIDER SELECT - Active provider is ${selectedProvider} (${rateCard.name})` },
-      { timestamp: stamp, type: "utility", message: `RESOURCE METROLOGY - projected API opex: $${totalMonthlyCost.toFixed(2)}/mo vs $${subCost.toFixed(2)} flat sub.` },
-      { timestamp: stamp, type: "finops", message: `FINOPS PROFILE - Monthly savings curve delta: ${netSavings >= 0 ? "+" : ""}$${netSavings.toFixed(2)}` },
-      { timestamp: stamp, type: "listen", message: `VERDICT - ${netSavings > 0 ? "SWAP TO API RECOMMENDED (bleed detected)" : "HOLD FLAT SUBSCRIPTION (dense utilization)"}` }
+      { timestamp: stamp, type: "init", message: "Standardized template metrics synchronized." },
+      { timestamp: stamp, type: "config", message: `NODE CONFIG - Target matched: ${matchedNode} ($${nodeCost.toLocaleString()} capex upfront)` },
+      { timestamp: stamp, type: "utility", message: `RESOURCE METROLOGY - Ongoing utility projection: $${localOpex.toFixed(2)}/mo continuous opex` },
+      { timestamp: stamp, type: "finops", message: `FINOPS PROFILE - Payback horizon curve projected at ${payback >= 99 ? "INFINITE" : payback.toFixed(1)} months.` },
+      { timestamp: stamp, type: "listen", message: "LISTENING - Standing by for telemetry metrics hook inside /public subfolder..." }
     ];
 
     setLogs(newLogs);
@@ -129,63 +103,54 @@ export default function SubVsApi() {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [promptsPerDay, wordsPerPrompt, selectedProvider, mounted]);
+  }, [spend, tokens, rate, mounted]);
 
   if (!mounted) return null;
 
   // Perform Calculations
-  const rateCard = LLM_RATE_CARD[selectedProvider];
-  const inputTokens = wordsPerPrompt * 0.7 * 1.33;
-  const outputTokens = wordsPerPrompt * 0.3 * 1.33;
+  let matchedNodeKey = "MTK Lite Node";
+  if (tokens > 5000000 || spend > 3000) matchedNodeKey = "MTK Cluster-4U";
+  else if (tokens > 2000000 || spend > 1000) matchedNodeKey = "MTK Pro Node";
 
-  const dailyInputTokens = inputTokens * promptsPerDay;
-  const dailyOutputTokens = outputTokens * promptsPerDay;
+  const matchedNodeData = HARDWARE_MATRICES[matchedNodeKey as keyof typeof HARDWARE_MATRICES];
+  const localMonthlyUtilityCost = (tokens / RUNTIME_EFFICIENCY) * rate * 24 * 30;
+  const netMonthlySavings = spend - localMonthlyUtilityCost;
+  const paybackMonths = netMonthlySavings > 0 ? (matchedNodeData.cost / netMonthlySavings) : 99;
+  const annualSavings = netMonthlySavings > 0 ? (netMonthlySavings * 12) : 0;
 
-  const monthlyInputTokens = dailyInputTokens * 30.5;
-  const monthlyOutputTokens = dailyOutputTokens * 30.5;
-  const totalMonthlyTokens = monthlyInputTokens + monthlyOutputTokens;
-
-  const monthlyInputCost = (monthlyInputTokens / 1000000) * rateCard.inputCostPerMillion;
-  const monthlyOutputCost = (monthlyOutputTokens / 1000000) * rateCard.outputCostPerMillion;
-  const totalMonthlyCost = monthlyInputCost + monthlyOutputCost;
-
-  const flatSubCost = 20.00;
-  const netMonthlySavings = flatSubCost - totalMonthlyCost;
-  const overpaying = netMonthlySavings > 0;
-  const annualSavings = netMonthlySavings * 12;
-
-  // Generate SVG graph coordinates: Cumulative Spend Comparison over 12 Months
+  // Generate SVG graph coordinates
   const generateGraphPoints = () => {
     const width = 600;
     const height = 240;
     const padding = 20;
 
-    const maxVal = Math.max(flatSubCost * 12, totalMonthlyCost * 12);
+    const maxVal = Math.max(spend * 12, matchedNodeData.cost + (localMonthlyUtilityCost * 12));
     
     const getX = (month: number) => padding + ((width - padding * 2) * month) / 11;
     const getY = (val: number) => height - padding - ((val / maxVal) * (height - padding * 2));
 
-    const subCoords = Array.from({ length: 12 }, (_, i) => {
+    const cloudCoords = Array.from({ length: 12 }, (_, i) => {
       const x = getX(i);
-      const y = getY(flatSubCost * (i + 1));
+      const y = getY(spend * (i + 1));
       return `${x},${y}`;
     }).join(" ");
 
-    const apiCoords = Array.from({ length: 12 }, (_, i) => {
+    const nodeCoords = Array.from({ length: 12 }, (_, i) => {
       const x = getX(i);
-      const y = getY(totalMonthlyCost * (i + 1));
+      const y = getY(matchedNodeData.cost + (localMonthlyUtilityCost * (i + 1)));
       return `${x},${y}`;
     }).join(" ");
 
-    return { subCoords, apiCoords, getX, getY };
+    return { cloudCoords, nodeCoords, getX, getY };
   };
 
   const graphPoints = generateGraphPoints();
 
   // Social Shares
   const handleShare = (platform: "twitter" | "linkedin" | "facebook" | "reddit" | "copy") => {
-    const text = `Just audited our monthly ChatGPT subscriptions vs dynamic API rates: we could save $${Math.max(0, annualSavings).toFixed(2)}/year using raw API keys! Check your savings delta at:`;
-    const url = "https://mytokencost.com/calc/sub-vs-api";
+    const paybackText = paybackMonths >= 99 ? "Infinite" : `${paybackMonths.toFixed(1)} months`;
+    const text = `Just calculated our AI cost optimization: switching from SaaS to our own bare-metal GPU workstation pays for itself in just ${paybackText}, saving $${Math.round(annualSavings).toLocaleString()}/year! Check your break-even opex at:`;
+    const url = "https://mytokencost.com/calc/spend-vs-node";
 
     if (platform === "twitter") {
       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
@@ -210,21 +175,21 @@ export default function SubVsApi() {
 
   // Node Descriptions
   const archNodes = {
-    ingest: {
-      title: "01 Query Input Buffer",
-      body: "Calculates the total characters of daily prompts. Maps typical 70% input (system instructions, user prompt) and 30% output (agent completion) payload ratios."
+    client: {
+      title: "01 Client Ingest Terminal",
+      body: "Tracks development text buffers and prompt pipelines. Strips redundant whitespaces and line breaks client-side to minimize unoptimized token context before transmission."
     },
     proxy: {
-      title: "02 Tokenizer Processing",
-      body: "Translates characters to token count using a 1.33 multiplier standard coefficient. Maps active data blocks locally in-browser prior to rating."
+      title: "02 MTC Proxy Middleware",
+      body: "Our zero-retention cloud proxy maps input metrics. It manages local-routing strategies and checks state compliance before directing tasks to local hardware workstation nodes."
     },
-    rate: {
-      title: "03 SSOT Provider Rate Card",
-      body: "Pulls exact per-million input and output pricing from src/lib/shared/rates.ts, establishing a highly accurate rate metrics foundation."
+    hardware: {
+      title: "03 Dedicated Local GPU Workstation",
+      body: "Turnkey workstation nodes running silent offline inference model pools (Ollama/CUDA). Computes heavy completions locally using flat grid utility electricity costs."
     },
-    compare: {
-      title: "04 Amortization Engine",
-      body: "Compares dynamic API usage costs against flat-rate subscriptions to calculate breakeven thresholds and project annual savings curves."
+    local: {
+      title: "04 Local Safe Terminal",
+      body: "Final safe sandboxed runtime kernel execution environment. Keeps proprietary company data air-gapped, fully complying with standard regulatory security requirements."
     }
   };
 
@@ -238,10 +203,10 @@ export default function SubVsApi() {
             <Activity className="w-4 h-4 text-cyanNeon" /> Platform Template V1.0
           </div>
           <h2 className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-white flex flex-wrap items-center gap-2">
-            Subscription vs. <span className="text-cyanNeon font-black">API Key Break-Even Tool</span>
+            Cloud Spend vs. <span className="text-cyanNeon font-black">Bare-Metal Node ROI</span>
           </h2>
           <p className="text-sm text-slate-200 max-w-3xl leading-relaxed font-medium">
-            Standardized Telemetry Tracker (ID: <code className="bg-black text-slate-100 px-1.5 py-0.5 rounded border border-slate-700 font-mono text-xs">calc-sub-vs-api</code>). Calculate if you should keep paying $20/month for flat-rate subscriptions or switch to pay-as-you-go API keys on open-source UIs.
+            Standardized Telemetry Tracker (ID: <code className="bg-black text-slate-100 px-1.5 py-0.5 rounded border border-slate-700 font-mono text-xs">calc-spend-vs-node</code>). Project capital break-even curves comparing continuous cloud landlord API subscriptions against owned hardware nodes.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs font-sans bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl">
@@ -308,68 +273,82 @@ export default function SubVsApi() {
                   <Sliders className="w-4 h-4 inline mr-1 text-cyanNeon" /> Custom Modifiers
                 </span>
 
-                {/* Dropdown Model */}
-                <div className="space-y-2">
-                  <label className="text-slate-300 text-[10px] uppercase font-bold tracking-wider block font-bold">1. Select AI Model & API Rates</label>
-                  <select
-                    value={selectedProvider}
-                    onChange={(e) => setSelectedProvider(e.target.value as ProviderKey)}
-                    className="bg-black border border-slate-700 focus:border-cyanNeon rounded-xl px-3 py-3.5 text-xs text-white focus:outline-none w-full cursor-pointer font-semibold outline-none transition"
-                  >
-                    {Object.keys(LLM_RATE_CARD).map((key) => (
-                      <option key={key} value={key} className="bg-black">
-                        {key.toUpperCase()} ({LLM_RATE_CARD[key as ProviderKey].name})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* Slider 1 */}
                 <div className="space-y-2.5">
                   <div className="flex justify-between text-xs font-sans">
-                    <span className="text-slate-200 font-bold">2. Daily Prompts Sent</span>
-                    <span className="text-cyanNeon font-extrabold font-sans text-sm">{promptsPerDay} Prompts / Day</span>
+                    <span className="text-slate-200 font-bold">Monthly Cloud Spend</span>
+                    <span className="text-cyanNeon font-extrabold font-sans text-sm">${spend.toLocaleString()} / mo</span>
                   </div>
                   <input 
                     type="range" 
-                    min="1" 
-                    max="100" 
-                    step="1" 
-                    value={promptsPerDay}
-                    onChange={(e) => setPromptsPerDay(Number(e.target.value))}
-                    className="w-full accent-cyanNeon bg-black border border-slate-855 h-2 rounded-lg cursor-pointer"
+                    min="100" 
+                    max="10000" 
+                    step="100" 
+                    value={spend}
+                    onChange={(e) => setSpend(Number(e.target.value))}
+                    className="w-full accent-cyanNeon bg-black border border-slate-850 h-2 rounded-lg cursor-pointer"
                   />
                   <div className="flex justify-between text-[11px] font-sans text-slate-300 font-bold">
-                    <span>1</span>
-                    <span>100</span>
+                    <span>$100</span>
+                    <span>$10,000</span>
                   </div>
                 </div>
 
                 {/* Slider 2 */}
                 <div className="space-y-2.5">
                   <div className="flex justify-between text-xs font-sans">
-                    <span className="text-slate-200 font-bold">3. Avg Word Count (In + Out)</span>
-                    <span className="text-cyanNeon font-extrabold font-sans text-sm">{wordsPerPrompt} Words</span>
+                    <span className="text-slate-200 font-bold">Tokens Processed / Day</span>
+                    <span className="text-cyanNeon font-extrabold font-sans text-sm">{(tokens / 1000000).toFixed(1)}M Tokens</span>
                   </div>
                   <input 
                     type="range" 
-                    min="50" 
-                    max="1500" 
-                    step="50" 
-                    value={wordsPerPrompt}
-                    onChange={(e) => setWordsPerPrompt(Number(e.target.value))}
-                    className="w-full accent-cyanNeon bg-black border border-slate-855 h-2 rounded-lg cursor-pointer"
+                    min="100000" 
+                    max="10000000" 
+                    step="100000" 
+                    value={tokens}
+                    onChange={(e) => setTokens(Number(e.target.value))}
+                    className="w-full accent-cyanNeon bg-black border border-slate-850 h-2 rounded-lg cursor-pointer"
                   />
                   <div className="flex justify-between text-[11px] font-sans text-slate-300 font-bold">
-                    <span>50</span>
-                    <span>1500</span>
+                    <span>100K</span>
+                    <span>10M</span>
                   </div>
+                </div>
+
+                {/* Slider 3 */}
+                <div className="space-y-2.5">
+                  <div className="flex justify-between text-xs font-sans">
+                    <span className="text-slate-200 font-bold">Local Electricity Rate</span>
+                    <span className="text-cyanNeon font-extrabold font-sans text-sm">${rate.toFixed(2)} / kWh</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.05" 
+                    max="0.45" 
+                    step="0.01" 
+                    value={rate}
+                    onChange={(e) => setRate(Number(e.target.value))}
+                    className="w-full accent-cyanNeon bg-black border border-slate-850 h-2 rounded-lg cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[11px] font-sans text-slate-300 font-bold">
+                    <span>$0.05</span>
+                    <span>$0.45</span>
+                  </div>
+                </div>
+
+                {/* Recommended Node */}
+                <div className="p-4 bg-black rounded-xl border border-slate-750 flex items-center justify-between text-sm font-sans">
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-slate-300 uppercase font-extrabold">Recommended Node Setup:</div>
+                    <div className="font-extrabold text-white text-base">{matchedNodeKey}</div>
+                  </div>
+                  <Server className="w-5 h-5 text-cyanNeon" />
                 </div>
               </div>
 
               <div className="pt-5 border-t border-slate-800 mt-6 text-xs text-emerald-400 leading-relaxed flex items-start gap-2.5 font-bold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>API opex remains fully pay-as-you-go. Avoid flat fees on low prompt volumes.</span>
+                <span>Local air-gapped workstations drop marginal execution opex down near utility power bounds.</span>
               </div>
             </div>
 
@@ -378,11 +357,11 @@ export default function SubVsApi() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-[11px] font-extrabold font-sans text-slate-200 uppercase tracking-widest block">
-                    Cumulative 12-Month Opex Projections
+                    FinOps Payback Horizon Timeline
                   </span>
                   <div className="flex gap-4 text-[10px] font-sans text-slate-200 font-extrabold">
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded bg-[#ef4444] block"></span> Flat Sub ($240/yr)</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded bg-cyanNeon block"></span> Pay-As-You-Go API</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded bg-[#ef4444] block"></span> Cloud API</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded bg-cyanNeon block"></span> Bare-Metal Node</span>
                   </div>
                 </div>
 
@@ -395,11 +374,11 @@ export default function SubVsApi() {
                     <line x1="20" y1="20" x2="580" y2="20" stroke="#1e293b" strokeWidth="1" strokeDasharray="2 4" />
 
                     {/* Timeline curves */}
-                    <polyline points={graphPoints.subCoords} stroke="#ef4444" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points={graphPoints.apiCoords} stroke="#00f0ff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={graphPoints.cloudCoords} stroke="#ef4444" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={graphPoints.nodeCoords} stroke="#00f0ff" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
 
-                    {/* Area fill for API if cheaper */}
-                    <path d={`M 20,220 L ${graphPoints.apiCoords} L 580,220 Z`} fill="rgba(0,240,255,0.02)" />
+                    {/* Area fill for Node */}
+                    <path d={`M 20,220 L ${graphPoints.nodeCoords} L 580,220 Z`} fill="rgba(0,240,255,0.03)" />
 
                     {/* Labels */}
                     <text x="20" y="235" fill="#cbd5e1" fontFamily="monospace" fontSize="10" fontWeight="bold">M1</text>
@@ -414,22 +393,22 @@ export default function SubVsApi() {
               {/* Metric Scorecards underneath the chart */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs pt-6">
                 <div className="bg-black border border-slate-800 p-4.5 rounded-xl text-left">
-                  <span className="text-[10px] text-slate-300 uppercase tracking-wider block font-extrabold">Monthly Token Volume</span>
-                  <span className="text-xl font-black text-white mt-1 block font-sans">{Math.floor(totalMonthlyTokens).toLocaleString()}</span>
-                </div>
-                <div className="bg-black border border-slate-800 p-4.5 rounded-xl text-left">
-                  <span className="text-[10px] text-slate-300 uppercase tracking-wider block font-extrabold">Projected API Cost</span>
-                  <span className="text-xl font-black text-white mt-1 block font-sans">${totalMonthlyCost.toFixed(2)}/mo</span>
+                  <span className="text-[10px] text-slate-300 uppercase tracking-wider block font-extrabold">Annual Loss Deflected</span>
+                  <span className="text-2xl font-black text-white mt-1 block font-sans">${Math.round(annualSavings).toLocaleString()}</span>
                 </div>
                 <div className={`p-4.5 rounded-xl transition-all duration-300 text-left ${
-                  overpaying ? "bg-emeraldNeon/10 border border-emeraldNeon/30 glow-emerald" : "bg-redNeon/15 border border-redNeon/30 glow-red"
+                  paybackMonths > 12 ? "bg-redNeon/20 border border-redNeon/40 glow-red" : "bg-black border border-slate-800"
                 }`} id="card-payback">
-                  <span className="text-[10px] text-slate-300 uppercase tracking-wider block font-extrabold">Savings Delta</span>
-                  <span className={`text-xl font-black mt-1 block font-sans ${
-                    overpaying ? "text-emeraldNeon text-glow-emerald" : "text-red-400"
+                  <span className="text-[10px] text-slate-300 uppercase tracking-wider block font-extrabold">Amortization Payback</span>
+                  <span className={`text-2xl font-black mt-1 block font-sans ${
+                    paybackMonths > 12 ? "text-redNeon text-glow-red animate-pulse" : "text-cyanNeon text-glow-cyan"
                   }`}>
-                    {overpaying ? `+$${netMonthlySavings.toFixed(2)} Saved` : `-$${Math.abs(netMonthlySavings).toFixed(2)} Bleed`}
+                    {paybackMonths >= 99 ? "Infinite" : `${paybackMonths.toFixed(1)} Months`}
                   </span>
+                </div>
+                <div className="bg-black border border-slate-800 p-4.5 rounded-xl text-left">
+                  <span className="text-[10px] text-slate-300 uppercase tracking-wider block font-extrabold">Continuous Node Power</span>
+                  <span className="text-2xl font-black text-white mt-1 block font-sans">{matchedNodeData.tdp.toFixed(2)} kW</span>
                 </div>
               </div>
 
@@ -442,19 +421,19 @@ export default function SubVsApi() {
         {activeTab === "about" && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-xl leading-relaxed">
             <h3 className="text-lg font-bold font-sans border-b border-slate-800 pb-3 flex items-center gap-2 text-white">
-              <span className="text-cyanNeon"><Info className="w-5 h-5" /></span> Pay-As-You-Go API Key Mechanics
+              <span className="text-cyanNeon"><Info className="w-5 h-5" /></span> Strategic Hardware Execution Topologies
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[13px] text-slate-100 font-medium">
               <div className="space-y-3 bg-black border border-slate-800 p-6 rounded-xl">
-                <span className="text-redNeon font-sans font-extrabold uppercase text-[11px] tracking-wider block">Flat Subscription Rent trap</span>
+                <span className="text-redNeon font-sans font-extrabold uppercase text-[11px] tracking-wider block">The Cloud Landlord Premise</span>
                 <p className="leading-relaxed text-slate-200">
-                  Paying $20/month flat fee assumes massive, constant daily prompting. On months where your query volumes drop, upstream chatbot services extract extremely high profit margins by charging you a flat fee for zero compute.
+                  As multi-agent processing systems and massive context sizes (dense prompt logs) expand, continuous renting of API queries gets excessively high. Upstream cloud providers capture continuous double-digit gross margins by charging transactional context rent metrics.
                 </p>
               </div>
               <div className="space-y-3 bg-black border border-slate-800 p-6 rounded-xl">
-                <span className="text-emeraldNeon font-sans font-extrabold uppercase text-[11px] tracking-wider block">Raw API Key Arbitrage</span>
+                <span className="text-emeraldNeon font-sans font-extrabold uppercase text-[11px] tracking-wider block">The Local Sovereign Alternative</span>
                 <p className="leading-relaxed text-slate-200">
-                  By piping your own pay-as-you-go API keys into open-source web interfaces (like LibreChat or OpenWebUI), you avoid flat rent. You pay strictly for the fractions of a cent of compute you consume, saving substantial capital on low or moderate volumes.
+                  Transitioning local execution loops onto dedicated, localized bare-metal workstations drops transaction billing entirely. The continuous running cost maps straight to utility electrical power capacity bounds, reducing ongoing API fees to fraction limits.
                 </p>
               </div>
             </div>
@@ -469,32 +448,29 @@ export default function SubVsApi() {
             <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl text-left">
               <div>
                 <h3 className="text-base font-bold font-sans flex items-center gap-2 text-white"><Gavel className="w-4 h-4 text-cyanNeon" /> Mathematics & Constants Rules</h3>
-                <p className="text-slate-200 text-xs mt-1 font-semibold leading-relaxed">Our local state engine utilizes these verified mathematical equations to map ongoing subscription metrics:</p>
+                <p className="text-slate-200 text-xs mt-1 font-semibold leading-relaxed">Our local state engine utilizes these verified mathematical equations to map ongoing finops metrics:</p>
               </div>
               
               <div className="space-y-4 text-xs font-mono">
                 <div className="bg-black border border-slate-800 p-4 rounded-xl">
-                  <span className="text-[10px] text-slate-300 uppercase tracking-widest block font-extrabold mb-2">Equation 01: Character to Token Volume Matrix</span>
+                  <span className="text-[10px] text-slate-300 uppercase tracking-widest block font-extrabold mb-2">Equation 01: Cloud Context Rent Accumulation</span>
                   <div className="text-sm font-bold text-cyanNeon text-glow-cyan py-1 font-mono">
-                    Token_Total = Word_Count * 1.33
+                    C_cloud(t) = M_api * t
+                  </div>
+                </div>
+                <div className="bg-black border border-slate-800 p-4 rounded-xl">
+                  <span className="text-[10px] text-slate-300 uppercase tracking-widest block font-extrabold mb-2">Equation 02: Amortized Local Utility Opex Projections</span>
+                  <div className="text-sm font-bold text-cyanNeon text-glow-cyan py-1 font-mono">
+                    Opex_local = ( T_day / 50,000 ) * R_utility * 24 * 30
                   </div>
                   <p className="text-[10px] text-slate-300 leading-relaxed mt-2 font-mono font-bold">
-                    *Assumes standard LLM tiktoken vocabulary densities yielding a constant 1.33 tokens per word index.
+                    *Assumes a constant processing throughput density coefficient of 50,000 tokens per kilowatt-hour utility load.
                   </p>
                 </div>
                 <div className="bg-black border border-slate-800 p-4 rounded-xl">
-                  <span className="text-[10px] text-slate-300 uppercase tracking-widest block font-extrabold mb-2">Equation 02: Ingest Split Projections</span>
+                  <span className="text-[10px] text-slate-300 uppercase tracking-widest block font-extrabold mb-2">Equation 03: Combined Capex + Opex Hardware Payback Horizon</span>
                   <div className="text-sm font-bold text-cyanNeon text-glow-cyan py-1 font-mono">
-                    Input_Tokens = Total * 0.70 | Output_Tokens = Total * 0.30
-                  </div>
-                  <p className="text-[10px] text-slate-300 leading-relaxed mt-2 font-mono font-bold">
-                    *Applies a standard macroscopic 70% input (context injection) and 30% output (generation) model split.
-                  </p>
-                </div>
-                <div className="bg-black border border-slate-800 p-4 rounded-xl">
-                  <span className="text-[10px] text-slate-300 uppercase tracking-widest block font-extrabold mb-2">Equation 03: Monthly Cost & Savings Delta</span>
-                  <div className="text-sm font-bold text-cyanNeon text-glow-cyan py-1 font-mono">
-                    Savings = 20.00 - [ (Input * R_in) + (Output * R_out) ] * 30.5
+                    Payback = Hardware_Capex / ( M_api - Opex_local )
                   </div>
                 </div>
               </div>
@@ -506,7 +482,7 @@ export default function SubVsApi() {
                 <div>
                   <span className="bg-indigoNeon/20 text-[#818cf8] text-[10px] font-sans border border-indigoNeon/30 px-2.5 py-0.5 rounded font-extrabold uppercase tracking-widest block max-w-fit">GATEWAY REGISTRY</span>
                   <h3 className="text-base font-extrabold font-sans mt-2 text-white">Book B2B Intake Audit</h3>
-                  <p className="text-slate-200 text-xs mt-1.5 leading-relaxed font-semibold">Let our enterprise group audit your employee prompt arrays, centralize API gateway keys, and configure structural cost ceilings.</p>
+                  <p className="text-slate-200 text-xs mt-1.5 leading-relaxed font-semibold">Let our infrastructure group securely check your prompt arrays and configure gateway routes straight against local grid limits.</p>
                 </div>
                 
                 {!bookingSuccess ? (
@@ -538,7 +514,7 @@ export default function SubVsApi() {
         {activeTab === "architecture" && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl space-y-5">
             <div>
-              <h3 className="text-base font-bold font-sans flex items-center gap-2 text-white"><Network className="w-4 h-4 text-indigoNeon" /> Telemetry Processing Ingress</h3>
+              <h3 className="text-base font-bold font-sans flex items-center gap-2 text-white"><Network className="w-4 h-4 text-indigoNeon" /> System Data Ingress Pipeline</h3>
               <p className="text-slate-200 text-xs mt-1 leading-relaxed font-semibold">Click active network vector nodes below to audit standard localized proxy routing rules:</p>
             </div>
 
@@ -559,31 +535,31 @@ export default function SubVsApi() {
                     <animate attributeName="cx" values="410;540" dur="1.5s" repeatCount="indefinite" />
                   </circle>
 
-                  {/* Node 1: Ingest Buffer */}
-                  <g className="cursor-pointer" onClick={() => setSelectedArchNode("ingest")}>
-                    <rect x="20" y="60" width="100" height="80" rx="6" fill={selectedArchNode === "ingest" ? "#0a0f1d" : "#1e293b"} stroke="#6366f1" strokeWidth={selectedArchNode === "ingest" ? "2" : "1.5"} />
-                    <text x="70" y="95" fill="#f8fafc" fontFamily="monospace" fontSize="9" fontWeight="bold" textAnchor="middle">01 INPUTS</text>
-                    <text x="70" y="115" fill="#cbd5e1" fontFamily="monospace" fontSize="7" fontWeight="bold" textAnchor="middle">Daily Prompts</text>
+                  {/* Node 1: Client Ingest */}
+                  <g className="cursor-pointer" onClick={() => setSelectedArchNode("client")}>
+                    <rect x="20" y="60" width="100" height="80" rx="6" fill={selectedArchNode === "client" ? "#0a0f1d" : "#1e293b"} stroke="#6366f1" strokeWidth={selectedArchNode === "client" ? "2" : "1.5"} />
+                    <text x="70" y="95" fill="#f8fafc" fontFamily="monospace" fontSize="9" fontWeight="bold" textAnchor="middle">01 CLIENT</text>
+                    <text x="70" y="115" fill="#cbd5e1" fontFamily="monospace" fontSize="7" fontWeight="bold" textAnchor="middle">IDE Ingest</text>
                   </g>
 
-                  {/* Node 2: Tokenizer */}
+                  {/* Node 2: MTC Proxy */}
                   <g className="cursor-pointer" onClick={() => setSelectedArchNode("proxy")}>
                     <rect x="250" y="40" width="160" height="120" rx="8" fill={selectedArchNode === "proxy" ? "#0a0f1d" : "#1e293b"} stroke="#00f0ff" strokeWidth={selectedArchNode === "proxy" ? "2.5" : "1.5"} />
-                    <text x="330" y="90" fill="#f8fafc" fontFamily="monospace" fontSize="10" fontWeight="bold" textAnchor="middle">02 TOKENIZER</text>
-                    <text x="330" y="110" fill="#00f0ff" fontFamily="monospace" fontSize="8" fontWeight="bold" textAnchor="middle">1.33x Multiplier</text>
+                    <text x="330" y="90" fill="#f8fafc" fontFamily="monospace" fontSize="10" fontWeight="bold" textAnchor="middle">02 MTC PROXY</text>
+                    <text x="330" y="110" fill="#00f0ff" fontFamily="monospace" fontSize="8" fontWeight="bold" textAnchor="middle">api.mytokencost.com</text>
                   </g>
 
-                  {/* Node 3: Rate Card */}
-                  <g className="cursor-pointer" onClick={() => setSelectedArchNode("rate")}>
-                    <rect x="540" y="50" width="160" height="100" rx="8" fill={selectedArchNode === "rate" ? "#0a0f1d" : "#1e293b"} stroke="#00f0ff" strokeWidth={selectedArchNode === "rate" ? "2.5" : "1.5"} />
-                    <text x="620" y="95" fill="#f8fafc" fontFamily="monospace" fontSize="10" fontWeight="bold" textAnchor="middle">03 SSOT RATES</text>
-                    <text x="620" y="115" fill="#6366f1" fontFamily="monospace" fontSize="8" fontWeight="bold" textAnchor="middle">rates.ts ledger</text>
+                  {/* Node 3: Local Workstation */}
+                  <g className="cursor-pointer" onClick={() => setSelectedArchNode("hardware")}>
+                    <rect x="540" y="50" width="160" height="100" rx="8" fill={selectedArchNode === "hardware" ? "#0a0f1d" : "#1e293b"} stroke="#00f0ff" strokeWidth={selectedArchNode === "hardware" ? "2.5" : "1.5"} />
+                    <text x="620" y="95" fill="#f8fafc" fontFamily="monospace" fontSize="10" fontWeight="bold" textAnchor="middle">03 WORKSTATION</text>
+                    <text x="620" y="115" fill="#6366f1" fontFamily="monospace" fontSize="8" fontWeight="bold" textAnchor="middle">Bare-Metal GPU</text>
                   </g>
 
-                  {/* Node 4: Comparator */}
-                  <g className="cursor-pointer" onClick={() => setSelectedArchNode("compare")}>
-                    <rect x="830" y="70" width="150" height="60" rx="6" fill={selectedArchNode === "compare" ? "#0a0f1d" : "#111827"} stroke="#475569" strokeWidth="1.5" />
-                    <text x="905" y="105" fill="#cbd5e1" fontFamily="monospace" fontSize="9" fontWeight="bold" textAnchor="middle">04 COMPARATOR</text>
+                  {/* Node 4: Local System */}
+                  <g className="cursor-pointer" onClick={() => setSelectedArchNode("local")}>
+                    <rect x="830" y="70" width="150" height="60" rx="6" fill={selectedArchNode === "local" ? "#0a0f1d" : "#111827"} stroke="#475569" strokeWidth="1.5" />
+                    <text x="905" y="105" fill="#cbd5e1" fontFamily="monospace" fontSize="9" fontWeight="bold" textAnchor="middle">LOCAL SYSTEM</text>
                   </g>
                 </svg>
               </div>
@@ -610,7 +586,7 @@ export default function SubVsApi() {
             <span className="h-2.5 w-2.5 bg-redNeon rounded-full"></span>
             <span className="h-2.5 w-2.5 bg-yellow-500 rounded-full"></span>
             <span className="h-2.5 w-2.5 bg-emeraldNeon rounded-full"></span>
-            <span className="text-xs text-slate-200 font-mono ml-2 font-bold">sub_vs_api_stdout.log</span>
+            <span className="text-xs text-slate-200 font-mono ml-2 font-bold">metrology_runtime_stdout.log</span>
           </div>
           <span className="text-[10px] text-cyanNeon font-mono tracking-widest text-glow-cyan font-bold uppercase"><Terminal className="w-3.5 h-3.5 inline mr-1" /> Console</span>
         </div>
@@ -637,11 +613,11 @@ export default function SubVsApi() {
       <div className="bg-gradient-to-r from-cyanNeon/10 via-black to-indigoNeon/10 border border-cyanNeon/20 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6 shadow-xl">
         <div className="space-y-1 text-center md:text-left">
           <div className="text-[10px] font-sans text-cyanNeon tracking-widest uppercase font-extrabold flex items-center justify-center md:justify-start gap-1.5 text-glow-cyan">
-            <CalendarDays className="w-4 h-4" /> Dynamic Prompt Ingestion Audit
+            <CalendarDays className="w-4 h-4" /> Frictionless Infrastructure Review
           </div>
-          <h3 className="text-lg font-black font-sans leading-tight text-white">Book a free 15-minute corporate API rate deflection consult with our gateway architects.</h3>
+          <h3 className="text-lg font-black font-sans leading-tight text-white">Book a free 15-minute operational framework consultation with our core architects.</h3>
           <p className="text-slate-100 text-xs max-w-3xl leading-relaxed font-semibold">
-            We evaluate corporate prompt log sizes, redundant tokenizer leaks, and pay-as-you-go router consolidation to deflect up to 60% of flat SaaS opex.
+            Evaluate localized hardware specs, dynamic energy rates, and custom prompt parsing systems to secure continuous zero-rent margin deflection.
           </p>
         </div>
         <button 
@@ -664,7 +640,7 @@ export default function SubVsApi() {
             <button 
               onClick={() => { 
                 setLiked(true); 
-                submitRating("calculator", "sub-vs-api", "up");
+                submitRating("calculator", "spend-vs-node", "up");
                 if (liked !== true) {
                   setUpvotes(prev => prev + 1);
                   if (liked === false) setDownvotes(prev => Math.max(0, prev - 1));
@@ -682,7 +658,7 @@ export default function SubVsApi() {
             <button 
               onClick={() => { 
                 setLiked(false); 
-                submitRating("calculator", "sub-vs-api", "down");
+                submitRating("calculator", "spend-vs-node", "down");
                 if (liked !== false) {
                   setDownvotes(prev => prev + 1);
                   if (liked === true) setUpvotes(prev => Math.max(0, prev - 1));

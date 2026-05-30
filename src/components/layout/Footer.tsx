@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950 py-12 text-sm text-slate-500 transition-colors duration-300">
+    <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-black py-12 text-sm text-slate-500 dark:text-slate-400 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
           {/* Brand Column */}
@@ -52,7 +52,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-slate-200 dark:border-slate-900 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 dark:text-slate-600">
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 dark:text-slate-400 font-semibold">
           <p>© {new Date().getFullYear()} MyTokenCost.com. All rights reserved.</p>
           <p className="mt-2 md:mt-0">Secured via Clerk Identity & Next.js Core.</p>
         </div>

@@ -323,13 +323,13 @@ export function TripleTelemetry({
   return (
     <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
       {/* 1. Compute Token Volume */}
-      <div className="border rounded-xl bg-slate-900/60 dark:bg-slate-950/70 border-slate-800 p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:border-slate-700/80">
+      <div className="border rounded-xl bg-slate-900 border-slate-800 p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:border-slate-700/80 shadow-xl">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500/20" />
         <div className="flex justify-between items-center">
           <div>
-            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 block">Compute Volume</span>
+            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-300 block">Compute Volume</span>
             <span className="font-mono text-sm font-bold text-white mt-0.5 block">
-              {formatTokens(displayTokens)} <span className="text-[10px] text-slate-400 font-normal">/ {formatTokens(displayTokensLimit)} Limit</span>
+              {formatTokens(displayTokens)} <span className="text-[10px] text-slate-300 font-normal">/ {formatTokens(displayTokensLimit)} Limit</span>
             </span>
           </div>
           <span
@@ -342,17 +342,17 @@ export function TripleTelemetry({
             {getTokensHeadroom()}
           </span>
         </div>
-        <div className="w-full h-32 rounded bg-slate-950/40 overflow-hidden relative border border-slate-900">
+        <div className="w-full h-32 rounded bg-black overflow-hidden relative border border-slate-800">
           <canvas ref={canvasTokensRef} className="w-full h-full block" />
         </div>
       </div>
 
       {/* 2. Grid Electrical Load */}
-      <div className="border rounded-xl bg-slate-900/60 dark:bg-slate-950/70 border-slate-800 p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:border-slate-700/80">
+      <div className="border rounded-xl bg-slate-900 border-slate-800 p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:border-slate-700/80 shadow-xl">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-emerald-500/20" />
         <div className="flex justify-between items-center">
           <div>
-            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 block">Grid Electrical Load</span>
+            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-300 block">Grid Electrical Load</span>
             <span className="font-mono text-sm font-bold text-white mt-0.5 block">
               {currentIndustry === "care" && !isSimulatedMacro
                 ? `${(displayEnergy * 1000).toFixed(0)} kW / ${(displayEnergyLimit * 1000).toFixed(0)} kW`
@@ -369,19 +369,19 @@ export function TripleTelemetry({
             {getEnergyHeadroom()}
           </span>
         </div>
-        <div className="w-full h-32 rounded bg-slate-950/40 overflow-hidden relative border border-slate-900">
+        <div className="w-full h-32 rounded bg-black overflow-hidden relative border border-slate-800">
           <canvas ref={canvasEnergyRef} className="w-full h-full block" />
         </div>
       </div>
 
       {/* 3. Cooling Resource Footprint */}
-      <div className="border rounded-xl bg-slate-900/60 dark:bg-slate-950/70 border-slate-800 p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:border-slate-700/80">
+      <div className="border rounded-xl bg-slate-900 border-slate-800 p-4 space-y-3 relative overflow-hidden transition-all duration-300 hover:border-slate-700/80 shadow-xl">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-amber-500/20" />
         <div className="flex justify-between items-center">
           <div>
-            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 block">Cooling Footprint</span>
+            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-300 block">Cooling Footprint</span>
             <span className="font-mono text-sm font-bold text-white mt-0.5 block">
-              {Math.round(displayWater).toLocaleString()} Gal <span className="text-[10px] text-slate-400 font-normal">/ {Math.round(displayWaterLimit).toLocaleString()} Lmt</span>
+              {Math.round(displayWater).toLocaleString()} Gal <span className="text-[10px] text-slate-300 font-normal">/ {Math.round(displayWaterLimit).toLocaleString()} Lmt</span>
             </span>
           </div>
           <span
@@ -394,7 +394,7 @@ export function TripleTelemetry({
             {getWaterHeadroom()}
           </span>
         </div>
-        <div className="w-full h-32 rounded bg-slate-950/40 overflow-hidden relative border border-slate-900">
+        <div className="w-full h-32 rounded bg-black overflow-hidden relative border border-slate-800">
           <canvas ref={canvasWaterRef} className="w-full h-full block" />
         </div>
       </div>

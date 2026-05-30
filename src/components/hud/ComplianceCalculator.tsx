@@ -96,7 +96,7 @@ export function ComplianceCalculator() {
     <div className="w-full max-w-5xl mx-auto space-y-8 my-8 px-4 sm:px-6 lg:px-8">
       
       {/* 4-Stage Strategic Focus Control Tabs */}
-      <div className="flex flex-wrap border-b border-slate-800 bg-slate-950/20 rounded-t-xl">
+      <div className="flex flex-wrap border-b border-slate-800 bg-black rounded-t-xl">
         {[
           { id: "Compliance", label: "📋 1. Compliance (Default)" },
           { id: "US Grid", label: "🌐 2. US Grid Clusters" },
@@ -108,8 +108,8 @@ export function ComplianceCalculator() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-5 py-3.5 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
               activeTab === tab.id
-                ? "text-[#00f0ff] border-[#00f0ff] bg-[#00f0ff]/5"
-                : "text-slate-500 border-transparent hover:text-slate-300"
+                ? "text-[#00f0ff] border-[#00f0ff] bg-[#00f0ff]/10"
+                : "text-slate-300 border-transparent hover:text-white hover:bg-slate-900/50"
             }`}
           >
             {tab.label}
@@ -118,7 +118,7 @@ export function ComplianceCalculator() {
       </div>
 
       {/* Dynamic Context Notification Banner */}
-      <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40 text-xs sm:text-sm flex items-start space-x-3 transition-all duration-300">
+      <div className="p-4 rounded-xl border border-slate-800 bg-slate-900 text-xs sm:text-sm flex items-start space-x-3 transition-all duration-300">
         <div className="p-1 rounded bg-[#00f0ff]/10 text-[#00f0ff] mt-0.5">
           {activeTab === "Compliance" ? (
             <ShieldAlert className="w-4 h-4" />
@@ -183,13 +183,13 @@ export function ComplianceCalculator() {
       <div className="flex flex-col lg:flex-row gap-8">
         
         {/* Controls Panel */}
-        <div className={`w-full lg:w-1/2 space-y-6 bg-slate-900/40 p-6 sm:p-8 rounded-xl border border-slate-800 transition-all duration-300 ${isSimulatedMacro ? "opacity-30 pointer-events-none grayscale" : ""}`}>
+        <div className={`w-full lg:w-1/2 space-y-6 bg-slate-900 p-6 sm:p-8 rounded-xl border border-slate-800 shadow-xl transition-all duration-300 ${isSimulatedMacro ? "opacity-30 pointer-events-none grayscale" : ""}`}>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-white font-space-grotesk tracking-tight">
                 {activeTab === "My Infra" ? "Facility Configuration" : "Non-Invasive Workspace"}
               </h2>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5 uppercase tracking-wide">Adjust sliders to test grid threshold stress</p>
+              <p className="text-[10px] text-slate-300 font-semibold mt-0.5 uppercase tracking-wide">Adjust sliders to test grid threshold stress</p>
             </div>
             {gridData && (
               <span className={`text-[9px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${gridData.isSynthetic ? 'text-amber-500 border-amber-500/20 bg-amber-500/5' : 'text-[#00f0ff] border-[#00f0ff]/20 bg-[#00f0ff]/5'}`}>
@@ -199,7 +199,7 @@ export function ComplianceCalculator() {
           </div>
           
           {/* Vertical Selector Buttons */}
-          <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800/80">
+          <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-black border border-slate-800">
             {(["datacenter", "water", "care"] as Industry[]).map((key) => (
               <button
                 key={key}
@@ -216,7 +216,7 @@ export function ComplianceCalculator() {
                 className={`py-3 rounded-lg text-xs font-bold font-mono transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
                   industry === key
                     ? "bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20 shadow-md shadow-[#00f0ff]/5"
-                    : "text-slate-400 hover:text-slate-200 border border-transparent hover:bg-slate-900/50"
+                    : "text-slate-300 hover:text-white border border-transparent hover:bg-slate-800/50"
                 }`}
               >
                 <span className="text-xl">{INDUSTRIES[key].emoji}</span>
@@ -231,7 +231,7 @@ export function ComplianceCalculator() {
             {/* Slider 1 */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
-                <label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">{INDUSTRIES[industry].slider1Label}</label>
+                <label className="text-slate-200 font-bold uppercase tracking-wider text-[10px]">{INDUSTRIES[industry].slider1Label}</label>
                 <span className="text-[#00f0ff] font-bold font-mono">
                   {slider1.toLocaleString()} {industry === "datacenter" ? "Nodes" : industry === "water" ? "HP" : "Units"}
                 </span>
@@ -242,9 +242,9 @@ export function ComplianceCalculator() {
                 max={industry === "datacenter" ? 15000 : industry === "water" ? 4000 : 350}
                 value={slider1}
                 onChange={(e) => setSlider1(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#00f0ff]"
+                className="w-full h-1.5 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#00f0ff]"
               />
-              <p className="text-[9.5px] text-slate-500 leading-relaxed font-semibold">
+              <p className="text-[9.5px] text-slate-300 leading-relaxed font-medium">
                 {INDUSTRIES[industry].slider1Desc}
               </p>
             </div>
@@ -252,7 +252,7 @@ export function ComplianceCalculator() {
             {/* Slider 2 */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
-                <label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">{INDUSTRIES[industry].slider2Label}</label>
+                <label className="text-slate-200 font-bold uppercase tracking-wider text-[10px]">{INDUSTRIES[industry].slider2Label}</label>
                 <span className="text-[#00f0ff] font-bold font-mono">
                   {slider2.toLocaleString()} {industry === "datacenter" ? "Hrs/Day" : industry === "water" ? "Hours" : "kW"}
                 </span>
@@ -263,9 +263,9 @@ export function ComplianceCalculator() {
                 max={industry === "datacenter" ? 24 : industry === "water" ? 168 : 800}
                 value={slider2}
                 onChange={(e) => setSlider2(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#00f0ff]"
+                className="w-full h-1.5 bg-slate-855 rounded-lg appearance-none cursor-pointer accent-[#00f0ff]"
               />
-              <p className="text-[9.5px] text-slate-500 leading-relaxed font-semibold">
+              <p className="text-[9.5px] text-slate-300 leading-relaxed font-medium">
                 {INDUSTRIES[industry].slider2Desc}
               </p>
             </div>
@@ -276,7 +276,7 @@ export function ComplianceCalculator() {
         {/* Scorecard Panel */}
         <div className="w-full lg:w-1/2 flex flex-col justify-between space-y-6">
           
-          <div className="bg-slate-900/40 p-6 sm:p-8 rounded-xl border border-slate-800 flex-1 space-y-6 flex flex-col justify-center">
+          <div className="bg-slate-900 p-6 sm:p-8 rounded-xl border border-slate-800 flex-1 space-y-6 flex flex-col justify-center shadow-xl">
             
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/20 uppercase tracking-widest">
@@ -285,23 +285,23 @@ export function ComplianceCalculator() {
               <h3 className="text-xl font-bold text-white font-space-grotesk tracking-tight">
                 {INDUSTRIES[industry].label}
               </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-200 leading-relaxed font-medium">
                 {INDUSTRIES[industry].subLabel} We map these simulated physical variables against state thresholds to ensure zero license interruptions.
               </p>
             </div>
 
             {/* Scorecard Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-950/60 p-4 rounded-lg border border-slate-900">
-                <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider block">Compliance Limit</span>
+              <div className="bg-black p-4 rounded-lg border border-slate-800">
+                <span className="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-wider block">Compliance Limit</span>
                 <span className="text-white text-base font-bold font-mono mt-1 block">
                   {industry === "datacenter" && "10.0 MW"}
                   {industry === "water" && "1,500 HP"}
                   {industry === "care" && `${(slider1 * 1.8).toLocaleString()} kW (Req.)`}
                 </span>
               </div>
-              <div className="bg-slate-950/60 p-4 rounded-lg border border-slate-900">
-                <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider block">Active Footprint</span>
+              <div className="bg-black p-4 rounded-lg border border-slate-800">
+                <span className="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-wider block">Active Footprint</span>
                 <span className={`text-base font-bold font-mono mt-1 block ${isViolating ? "text-red-400" : "text-emerald-400"}`}>
                   {industry === "datacenter" && `${activeCustomLoad.toFixed(2)} MW`}
                   {industry === "water" && `${activeCustomLoad.toLocaleString()} HP`}
